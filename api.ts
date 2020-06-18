@@ -349,7 +349,7 @@ let objBestPlayersAvailable = {
     forwards: []
 }
 
-async function getTopPlayersOfEachPosition(nNumberOfPlayers: number){
+export async function getTopPlayersOfEachPosition(nNumberOfPlayers: number){
     const redisSetAsync =  promisify(objSystem.redisClient.set.bind(objSystem.redisClient));
     objBestPlayersAvailable.overall = await getTopAvailablePlayers("20192020", nNumberOfPlayers);
     objBestPlayersAvailable.centers = await getTopAvailablePlayers("20192020", nNumberOfPlayers, "Center");
@@ -414,7 +414,7 @@ async function rankPositionToDraftByDeltas(){
     // console.log(positions);
 }
 
-async function calculateDeltasForPlayerToDraft(){
+export async function calculateDeltasForPlayerToDraft(){
     const redisGetAsync =  promisify(objSystem.redisClient.get.bind(objSystem.redisClient));
     objBestPlayersAvailable = JSON.parse(await redisGetAsync("nhl_top_players_available"));
     for(let position in objBestPlayersAvailable){
@@ -467,6 +467,7 @@ async function runProgram(){
         console.log(`\n******************\nFor the scenario with ${peopleTilNextPick}\n******************\n`);
         await getTopPlayersOfEachPosition(peopleTilNextPick);
         let recommendations = await calculateDeltasForPlayerToDraft();
+        console.log(recommendations)
         recommendations.forEach(player => {
             console.log(`${player.fullName}, ${player.id}, ${player.position}, ${player.category}`)
         });
