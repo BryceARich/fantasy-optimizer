@@ -1,0 +1,33 @@
+body {
+    font: 14px "Century Gothic", Futura, sans-serif;
+    margin: 20px;
+  }
+  
+  ol, ul {
+    padding-left: 30px;
+  }
+
+  table, th, td {
+    border: 1px solid black;
+    border-collapse: collapse;
+    font-size: 10pt;
+    width: fit-content;
+    max-width: 400px;
+  }
+  table{
+    overflow-y: scroll;
+    height: 3in;
+    display: inline-block ;
+    border-collapse: collapse;
+    border: 1px solid black;
+    width: fit-content;
+  }
+
+  table.teams{
+    height: fit-content;
+    width: fit-content;
+  }
+
+  select {
+    width: 100%;
+  }
