@@ -12,6 +12,7 @@ body {
     border-collapse: collapse;
     font-size: 10pt;
     width: fit-content;
+    max-width: 400px;
   }
   table{
     overflow-y: scroll;
