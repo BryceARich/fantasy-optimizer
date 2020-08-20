@@ -10,7 +10,8 @@ export class RecommendationTable extends React.Component {
     }
 
     render(){
-        // console.log(this.state.playerRows);
+        console.log("HERE")
+        console.log(this.props.playerRows);
         return(
             <table>
                 <thead>
@@ -22,7 +23,7 @@ export class RecommendationTable extends React.Component {
                 </tr>
                 </thead>
                 <tbody>
-                {this.state.playerRows.map(({player, position, fantasy_value, diffs}) => 
+                {this.props.playerRows.map(({player, position, fantasy_value, diffs}) =>
                     <tr className="table-row" id={player} key={player}>
                         {this.renderTextCell(player)}
                         {this.renderTextCell(position)}
