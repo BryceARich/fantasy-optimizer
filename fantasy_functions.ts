@@ -245,8 +245,8 @@ async function calculateFantasyWorthForPlayer(activePlayers: Array<IObjPlayer>){
                         // console.log(nFantasyWorth);
                     }
                 }
-                seasonStats.fantasy_value = nFantasyWorth;
-                // console.log(player.fullName, sSeason, player.arraySeasonStats[0][index].stat.fantasy_value);
+                seasonStats.fantasyValue = nFantasyWorth;
+                // console.log(player.fullName, sSeason, player.arraySeasonStats[0][index].stat.fantasyValue);
             }
             // run it through and push the score for each season, this way when pulling data for a player it will be the same json data for all seasons
             for(let index in player.arraySeasonStats[0]){
@@ -256,7 +256,7 @@ async function calculateFantasyWorthForPlayer(activePlayers: Array<IObjPlayer>){
                 if(leagueID !== 133){
                     continue;
                 }
-                nFantasyWorth = seasonStats.fantasy_value
+                nFantasyWorth = seasonStats.fantasyValue
                 await redisZAddAsync(`nhl_fantasy_player_value_${sSeason}`, nFantasyWorth, JSON.stringify(player));
                 await redisZAddAsync(`nhl_fantasy_player_value_position_${player.position.name.replace(" ","_")}_${sSeason}`, nFantasyWorth, JSON.stringify(player));
                 await redisZAddAsync(`nhl_fantasy_player_value_position_type_${player.position.type.replace(" ","_")}_${sSeason}`, nFantasyWorth, JSON.stringify(player));
@@ -289,13 +289,15 @@ export async function clearRedis(){
     });
 }
 
-export async function loadNHLDataToRedis(){
+export async function loadNHLDataToRedis(getNewStatValues = false){
     try{
         await loadScoringSystem();
         console.log(objScoring);
         let activePlayers = await loadStats();
         let statisticFields = await getStatisticFields(activePlayers);
-        await getStatisticFieldsPointValuesFromUser(statisticFields);
+        if(getNewStatValues){
+            await getStatisticFieldsPointValuesFromUser(statisticFields);
+        }
         await calculateFantasyWorthForPlayer(activePlayers);
         console.log("Calculated the Fantasy Worth for each player during their career");
         return activePlayers;
@@ -324,7 +326,7 @@ async function getTopAvailablePlayers(sSeason: string, nNumberOfPlayers: number,
                 // console.log(player.id, player.fullName, zRangeResult[index+1]);
                 if("true" === await redisHGetAsync("nhl_player_available_to_draft", player.id)){
                     // console.log(`${player.fullName} is Available`);
-                    top10Players.push({fullName: player.fullName, id: player.id, position: player.position.name, value: Number(zRangeResult[index+1]), deltas: [], deltaRanks: [], averageDeltaRank: 0});
+                    top10Players.push({fullName: player.fullName, id: player.id, position: player.position.name, fantasyValue: Number(zRangeResult[index+1]), deltas: [], deltaRanks: [], averageDeltaRank: 0});
                 } else {
                     // console.log(`${player.fullName} is NOT Available`);
                 }
@@ -407,10 +409,12 @@ async function rankPositionToDraftByDeltas(){
     positions = positions.slice().sort(function(a,b){return a.averageDeltaRank-b.averageDeltaRank})
     let recommendations = []
     positions.forEach(player => {
+        let averageDelta = player.deltas.reduce((a,b) => a + b, 0) / player.deltas.length;
+        // console.log(player.fantasyValue);
         // console.log(`${player.fullName}, ${player.id}, ${player.position}, ${player.category}`)
-        recommendations.push({fullName: player.fullName, id: player.id, position: player.position, category: player.category})
+        recommendations.push({fullName: player.fullName, id: player.id, position: player.position, category: player.category, fantasyValue: player.fantasyValue, averageDelta: averageDelta, deltas: player.deltas, firstDelta: player.deltas[1], lastDelta: player.deltas[player.deltas.length - 1]})
     });
-    return recommendations
+    return recommendations;
     // console.log(positions);
 }
 
@@ -421,7 +425,8 @@ export async function calculateDeltasForPlayerToDraft(){
         // console.log(objBestPlayersAvailable[position])
         let topPlayer = objBestPlayersAvailable[position][0];
         objBestPlayersAvailable[position].forEach(player => {
-            topPlayer.deltas.push(topPlayer.value - player.value);
+            // console.log("topPlayer\n", topPlayer, "player\n", player);
+            topPlayer.deltas.push(topPlayer.fantasyValue - player.fantasyValue);
         });
         // console.log(objBestPlayersAvailable[position][0].deltas);
     }
@@ -441,6 +446,20 @@ async function draftPlayer(){
     await redisHSetAsync(`nhl_player_available_to_draft`, `${playerID}`, false);
 }
 
+export async function draftPlayerAPI(player: IObjPlayer, draftTeam){
+    const redisHGetAsync = promisify(objSystem.redisClient.hget.bind(objSystem.redisClient));
+    const redisHSetAsync =  promisify(objSystem.redisClient.hset.bind(objSystem.redisClient));
+    // let sDraftedPlayer = prompt(`What is the full name of the drafted player?\t`);
+    if(player.fullName != 'undefined' && player.fullName != ''){
+        console.log(await convertPlayerNameToRedisKey(player.fullName));
+        // let sDraftingTeam = prompt(`What team drafted the player?\t`);
+        // console.log(`${sDraftedPlayer} drafted by ${sDraftingTeam}`);
+        player.id = await redisHGetAsync(`nhl_player_lookup`, await convertPlayerNameToRedisKey(player.fullName));
+    }
+    console.log(player.id);
+    await redisHSetAsync(`nhl_player_available_to_draft`, `${player.id}`, false);
+}
+
 async function undraftPlayer(){
     const redisHGetAsync = promisify(objSystem.redisClient.hget.bind(objSystem.redisClient));
     const redisZAddAsync = promisify(objSystem.redisClient.zadd.bind(objSystem.redisClient));
@@ -452,6 +471,20 @@ async function undraftPlayer(){
     let playerID = await redisHGetAsync(`nhl_player_lookup`, convertPlayerNameToRedisKey(sDraftedPlayer));
     console.log(playerID);
     await redisHSetAsync(`nhl_player_available_to_draft`, playerID, true);
+}
+
+export async function undraftPlayerAPI(player: IObjPlayer, draftTeam){
+    const redisHGetAsync = promisify(objSystem.redisClient.hget.bind(objSystem.redisClient));
+    const redisHSetAsync =  promisify(objSystem.redisClient.hset.bind(objSystem.redisClient));
+    // let sDraftedPlayer = await convertPlayerNameToRedisKey(prompt(`What is the full name of the drafted player?\t`));
+    if(player.fullName != 'undefined' && player.fullName != ''){
+        console.log(await convertPlayerNameToRedisKey(player.fullName));
+        // let sDraftingTeam = prompt(`What team drafted the player?\t`);
+        // console.log(`${sDraftedPlayer} drafted by ${sDraftingTeam}`);
+        player.id = await redisHGetAsync(`nhl_player_lookup`, await convertPlayerNameToRedisKey(player.fullName));
+    }
+    console.log(player.id);
+    await redisHSetAsync(`nhl_player_available_to_draft`, player.id, true);
 }
 
 async function convertPlayerNameToRedisKey(sPlayerName: string){
@@ -476,4 +509,4 @@ async function runProgram(){
     objSystem.redisClient.quit();
 }
 
-runProgram();
+// runProgram();
