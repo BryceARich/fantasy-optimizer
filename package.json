@@ -8,7 +8,9 @@
     "tsc": "tsc",
     "start-functions": "node build/fantasy_functions.js",
     "start": "node build/api.js",
-    "compile_and_run": "npm run tsc && npm run start"
+    "start_nfl": "node build/nfl_functions.js",
+    "compile_and_run": "npm run tsc && npm run start",
+    "compile_and_run_nfl": "npm run tsc && npm run start_nfl"
   },
   "repository": {
     "type": "git",
