@@ -28,7 +28,7 @@
     "csvtojson": "^2.0.10",
     "express": "^4.17.1",
     "prompt-sync": "^4.2.0",
-    "redis": "^3.0.2",
+    "redis": "^3.1.1",
     "redis-cli": "^1.4.0",
     "request": "^2.88.2",
     "ts-node": "^8.10.2",
