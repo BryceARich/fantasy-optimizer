@@ -306,10 +306,10 @@ export async function loadNHLDataToRedis(getNewStatValues = false){
     }
 }
 
-async function getTopAvailablePlayers(sSeason: string, nNumberOfPlayers: number, sPosition: string = ""){
+export async function getTopAvailablePlayers(availablePlayersOnly, sSeason: string, nNumberOfPlayers: number, sPosition: string = ""){
     const redisZRevRangeAsync = promisify(objSystem.redisClient.zrevrange.bind(objSystem.redisClient));
     const redisHGetAsync = promisify(objSystem.redisClient.hget.bind(objSystem.redisClient));
-    let top10Players = [];
+    let topPlayers = [];
     let redisKey;
     if(sPosition !== ""){
         redisKey = `nhl_fantasy_player_value_position_${sPosition}_${sSeason}`
@@ -318,16 +318,18 @@ async function getTopAvailablePlayers(sSeason: string, nNumberOfPlayers: number,
     }
     try{
         let rank = 0;
-        while(top10Players.length < nNumberOfPlayers){
+        while(topPlayers.length < nNumberOfPlayers){
             let zRangeResult = await redisZRevRangeAsync(redisKey, rank, rank, "WITHSCORES");
             // console.log(zRangeResult.length);
             for(let index=0; index < zRangeResult.length; index+=2){
                 let player = JSON.parse(zRangeResult[index])
                 // console.log(player.id, player.fullName, zRangeResult[index+1]);
-                if("true" === await redisHGetAsync("nhl_player_available_to_draft", player.id)){
+                let owner = await redisHGetAsync("nhl_player_available_to_draft", player.id)
+                if(availablePlayersOnly && "true" === owner){
                     // console.log(`${player.fullName} is Available`);
-                    top10Players.push({fullName: player.fullName, id: player.id, position: player.position.name, fantasyValue: Number(zRangeResult[index+1]), deltas: [], deltaRanks: [], averageDeltaRank: 0});
-                } else {
+                    topPlayers.push({fullName: player.fullName, id: player.id, position: player.position.name, fantasyValue: Number(zRangeResult[index+1]), deltas: [], deltaRanks: [], averageDeltaRank: 0, owner: owner});
+                } else if(!availablePlayersOnly && "false" !== owner) {
+                    topPlayers.push({fullName: player.fullName, id: player.id, position: player.position.name, fantasyValue: Number(zRangeResult[index+1]), deltas: [], deltaRanks: [], averageDeltaRank: 0, owner: owner});
                     // console.log(`${player.fullName} is NOT Available`);
                 }
             }
@@ -338,7 +340,7 @@ async function getTopAvailablePlayers(sSeason: string, nNumberOfPlayers: number,
     }
     // console.log(`Top 10 ${sPosition} Available:`)
     // console.log(top10Players);
-    return top10Players
+    return topPlayers
 }
 
 let objBestPlayersAvailable = {
@@ -351,15 +353,15 @@ let objBestPlayersAvailable = {
     forwards: []
 }
 
-export async function getTopPlayersOfEachPosition(nNumberOfPlayers: number){
+export async function getTopPlayersOfEachPosition(nNumberOfPlayers: number, sYearsOfSeason="20192020"){
     const redisSetAsync =  promisify(objSystem.redisClient.set.bind(objSystem.redisClient));
-    objBestPlayersAvailable.overall = await getTopAvailablePlayers("20192020", nNumberOfPlayers);
-    objBestPlayersAvailable.centers = await getTopAvailablePlayers("20192020", nNumberOfPlayers, "Center");
-    objBestPlayersAvailable.left_wings = await getTopAvailablePlayers("20192020", nNumberOfPlayers, "Left_Wing");
-    objBestPlayersAvailable.right_wings = await getTopAvailablePlayers("20192020", nNumberOfPlayers, "Right_Wing");
-    objBestPlayersAvailable.forwards = await getTopAvailablePlayers("20192020", nNumberOfPlayers, "type_Forward");
-    objBestPlayersAvailable.defensemen = await getTopAvailablePlayers("20192020", nNumberOfPlayers, "Defenseman");
-    objBestPlayersAvailable.goalies = await getTopAvailablePlayers("20192020", nNumberOfPlayers, "Goalie");
+    objBestPlayersAvailable.overall = await getTopAvailablePlayers(true, sYearsOfSeason, nNumberOfPlayers);
+    objBestPlayersAvailable.centers = await getTopAvailablePlayers(true, sYearsOfSeason, nNumberOfPlayers, "Center");
+    objBestPlayersAvailable.left_wings = await getTopAvailablePlayers(true, sYearsOfSeason, nNumberOfPlayers, "Left_Wing");
+    objBestPlayersAvailable.right_wings = await getTopAvailablePlayers(true, sYearsOfSeason, nNumberOfPlayers, "Right_Wing");
+    objBestPlayersAvailable.forwards = await getTopAvailablePlayers(true, sYearsOfSeason, nNumberOfPlayers, "type_Forward");
+    objBestPlayersAvailable.defensemen = await getTopAvailablePlayers(true, sYearsOfSeason, nNumberOfPlayers, "Defenseman");
+    objBestPlayersAvailable.goalies = await getTopAvailablePlayers(true, sYearsOfSeason, nNumberOfPlayers, "Goalie");
     // console.log(objBestPlayersAvailable);
     await redisSetAsync("nhl_top_players_available", JSON.stringify(objBestPlayersAvailable));
 }
@@ -412,6 +414,7 @@ async function rankPositionToDraftByDeltas(){
         let averageDelta = player.deltas.reduce((a,b) => a + b, 0) / player.deltas.length;
         // console.log(player.fantasyValue);
         // console.log(`${player.fullName}, ${player.id}, ${player.position}, ${player.category}`)
+        // console.log(averageDelta);
         recommendations.push({fullName: player.fullName, id: player.id, position: player.position, category: player.category, fantasyValue: player.fantasyValue, averageDelta: averageDelta, deltas: player.deltas, firstDelta: player.deltas[1], lastDelta: player.deltas[player.deltas.length - 1]})
     });
     return recommendations;
@@ -426,12 +429,13 @@ export async function calculateDeltasForPlayerToDraft(){
         let topPlayer = objBestPlayersAvailable[position][0];
         objBestPlayersAvailable[position].forEach(player => {
             // console.log("topPlayer\n", topPlayer, "player\n", player);
+            topPlayer.category = position;
             topPlayer.deltas.push(topPlayer.fantasyValue - player.fantasyValue);
         });
         // console.log(objBestPlayersAvailable[position][0].deltas);
     }
+    console.log("objBestPlayersAvailable",objBestPlayersAvailable);
     return await rankPositionToDraftByDeltas();
-    // console.log(objBestPlayersAvailable);
 }
 
 async function draftPlayer(){
@@ -446,7 +450,7 @@ async function draftPlayer(){
     await redisHSetAsync(`nhl_player_available_to_draft`, `${playerID}`, false);
 }
 
-export async function draftPlayerAPI(player: IObjPlayer, draftTeam){
+export async function draftPlayerAPI(player: IObjPlayer, draftTeam=false){
     const redisHGetAsync = promisify(objSystem.redisClient.hget.bind(objSystem.redisClient));
     const redisHSetAsync =  promisify(objSystem.redisClient.hset.bind(objSystem.redisClient));
     // let sDraftedPlayer = prompt(`What is the full name of the drafted player?\t`);
@@ -457,7 +461,7 @@ export async function draftPlayerAPI(player: IObjPlayer, draftTeam){
         player.id = await redisHGetAsync(`nhl_player_lookup`, await convertPlayerNameToRedisKey(player.fullName));
     }
     console.log(player.id);
-    await redisHSetAsync(`nhl_player_available_to_draft`, `${player.id}`, false);
+    await redisHSetAsync(`nhl_player_available_to_draft`, `${player.id}`, draftTeam);
 }
 
 async function undraftPlayer(){

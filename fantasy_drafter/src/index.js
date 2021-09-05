@@ -1,9 +1,12 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
+import CounterInput from "react-counter-input";
+
 import './index.css';
 import {DrafteeTable} from './DrafteeTable'
 import {RecommendationTable} from './RecommendationTable'
 import {TeamsTable} from './TeamsTable'
+import { isNumber } from 'util';
 // import {calculateDeltasForPlayerToDraft, getTopPlayersOfEachPosition} from './api'
 
 class FantasyDrafter extends React.Component{
@@ -11,121 +14,152 @@ class FantasyDrafter extends React.Component{
         super(props)
         this.state = {
             teams: [],
-            playerRows: []
+            recommendedPlayerRows: [],
+            playerRows: [],
+            picksAway: 10,
+            season: "20192020"
         };
         this.setState = this.setState.bind(this)
     }
 
-    componentWillMount(){
+    async componentWillMount(){
         console.log("starting to load player rows")
-        loadPlayerRows()
-        .then(function(rows){
+        await this.updatePlayerRows();
+        await this.updateRecommendedPlayerRows();
+    }
+
+    async updatePlayerRows(){
+        this.loadPlayerRows()
+        .then(function(playerRows){
             console.log("waited on loadPlayerRows")
-            console.log("rows", rows)
+            console.log("rows", playerRows)
             this.setState({
-                teams: this.state.teams,
-                playerRows: rows}
+                playerRows: playerRows}
                 )
             console.log("DONE")
             console.log(this.state);
         }.bind(this))
     }
 
+    async updateRecommendedPlayerRows(){
+        this.loadRecommendedPlayerRows()
+        .then(function(recommendedPlayerRows){
+            console.log("waited on loadPlayerRows")
+            console.log("rows", recommendedPlayerRows)
+            this.setState({
+                recommendedPlayerRows: recommendedPlayerRows}
+                )
+            console.log("DONE")
+            console.log(this.state);
+        }.bind(this))
+    }
+
+    async loadRecommendedPlayerRows() {
+        let recommendedPlayerRows = [];
+        console.log("PICKS AWAY", this.state.picksAway);
+        let season = "20182019"
+        let resp = await fetch(`http://localhost:3001/recommended/players/${this.state.picksAway}/season/${this.state.season}`)
+        .then(function (response) {
+            return response.json();
+        }).catch(function (error) {
+            console.log("Error: " + error);
+        });
+        console.log("response", resp);
+        // playerRows = resp.arrayRecommendations;
+        for(let index in resp.arrayRecommendations){
+            let player = resp.arrayRecommendations[index];
+            recommendedPlayerRows.push({
+                player: player.fullName,
+                position: player.position,
+                fantasy_value: player.fantasyValue,
+                diffs: player.deltas,
+                averageDelta: player.averageDelta,
+                firstDelta: player.firstDelta,
+                lastDelta: player.lastDelta,
+                category: player.category
+            })
+        }
+        console.log("Recommended Player rows");
+        console.log(recommendedPlayerRows)
+        return recommendedPlayerRows;
+    }
+
+    async loadPlayerRows() {
+        let playerRows = [];
+        let season = "20182019"
+        let respPlayers = await fetch(`http://localhost:3001/players/300/season/${this.state.season}`)
+        .then(function (response) {
+            return response.json();
+        }).catch(function (error) {
+            console.log("Error: " + error);
+        });
+        console.log("response", respPlayers);
+        for(let index in respPlayers.arrayPlayers){
+            let player = respPlayers.arrayPlayers[index];
+            console.log(player.owner);
+            playerRows.push({
+                player: player.fullName,
+                position: player.position,
+                fantasy_value: player.fantasyValue,
+                diffs: player.deltas,
+                owner: (player.owner !== "true" && player.owner !=="false") ? player.owner : null
+            })
+        }
+        console.log("Player rows");
+        console.log(playerRows)
+        return playerRows;
+    }
+
+    async handleCountChange(count){
+        await this.setState({picksAway: count});
+        await this.updateRecommendedPlayerRows();
+        console.log("updateRecommendedPlayerRows")
+    }
+
+    async changedSelection(event){
+        console.log("Changed season", event.target.value);
+        await this.setState({"season": event.target.value})
+        await this.updateRecommendedPlayerRows();
+        await this.updatePlayerRows();
+    }
+
     render(){
+        console.log("this.state")
         console.log(this.state)
+        console.log("this.state.playerRows")
+        console.log(this.state.playerRows)
         console.log("Rendering")
         return(
             <div>
+                <div>
+                    Picks Away
+                    <CounterInput
+                        min={1}
+                        max={64}
+                        count={10}
+                        onCountChange={count => this.handleCountChange(count)}
+                    />
+
+                    <select className="seasonPicker" name="season" id="seasonPicker" onChange={this.changedSelection.bind(this)}>
+                                        <option value="20192020">2019/2020</option>
+                                        <option value="20182019">2018/2019</option>
+                                        <option value="20172018">2017/2018</option>
+                                        <option value="20162017">2016/2017</option>
+                                        <option value="20152016">2015/2016</option>
+                                        <option value="20142015">2014/2015</option>
+                                        <option value="20132014">2013/2014</option>
+                                        <option value="20122013">2012/2013</option>
+                    </select>
+                </div>
                 <TeamsTable teams={this.state.teams} numberOfTeams={this.state.numberOfTeams} setParentState={this.setState}/>
                 <br/>
-                <DrafteeTable playerRows={tempPlayerRows} teams={this.state.teams}/>
+                <DrafteeTable playerRows={this.state.playerRows} teams={this.state.teams} onChange={this.updateRecommendedPlayerRows.bind(this)}/>
                 <br/>
-                <RecommendationTable playerRows={this.state.playerRows} teams={this.state.teams}/>
+                <RecommendationTable playerRows={this.state.recommendedPlayerRows} teams={this.state.teams}/>
             </div>
         )
     }
 }
-
-function makePlayer(number){
-    const diffs = [];
-    let prev_diff = 0;
-    for(let i=0; i < 15; i++){
-        let thisDiff = Number(Math.random()*20) + prev_diff
-        console.log(prev_diff, thisDiff)
-        diffs.push(Number(parseFloat(thisDiff).toFixed(2)));
-        prev_diff = diffs[i];
-    }
-    const player = {
-        player: ("name: " + number),
-        position: ("ps: " + number),
-        fantasy_value: number,
-        diffs: diffs,
-    }
-    // console.log("made player " + number)
-    return player
-}
-
-let tempPlayerRows = []
-
-for(let i=0; i < 100; i++){
-    tempPlayerRows.push(makePlayer(i));
-}
-
-let playerRows = [];
-async function loadPlayerRows() {
-    // let rows = []
-    // let resp = fetch("http://localhost:3001/recommended/players/4")
-    // .then(response => response.json())
-    // .then(data => {
-    //     console.log("DATA", data);
-    //     rows = data.arrayRecommendations;
-    // });
-    // console.log("RESPONSE", rows)
-        // console.log(json)
-        // console.log(response)
-        // for(let index in json.arrayRecommendations){
-        //     let player = json.arrayRecommendations[index];
-        //     playerRows.push({
-        //         player: player.fullName,
-        //         position: player.position,
-        //         fantasy_value: player.fantasyValue,
-        //         diffs: player.deltas
-        //     })
-        // }
-        // console.log("load player rows")
-        // console.log(tempPlayerRows)
-        // console.log(playerRows)
-        // tempPlayerRows = playerRows;
-        // return tempPlayerRows;
-    // }).catch(function (error) {
-    //     console.log("Error: " + error);
-    // });
-    // console.log(resp);
-    // playerRows = resp.arrayRecommendations;
-    let resp = await fetch("http://localhost:3001/recommended/players/4")
-    .then(function (response) {
-        return response.json();
-    }).catch(function (error) {
-        console.log("Error: " + error);
-    });
-    console.log(resp);
-    // playerRows = resp.arrayRecommendations;
-    for(let index in resp.arrayRecommendations){
-        let player = resp.arrayRecommendations[index];
-        playerRows.push({
-            player: player.fullName,
-            position: player.position,
-            fantasy_value: player.fantasyValue,
-            diffs: player.deltas
-        })
-    }
-    console.log(tempPlayerRows)
-    console.log(playerRows)
-    tempPlayerRows = playerRows;
-    return tempPlayerRows;
-}
-
-// loadPlayerRows();
 
 ReactDOM.render(
     <FantasyDrafter></FantasyDrafter>,
