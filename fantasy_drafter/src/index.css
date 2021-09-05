@@ -12,7 +12,7 @@ body {
     border-collapse: collapse;
     font-size: 10pt;
     width: fit-content;
-    max-width: 400px;
+    max-width: 1000px;
   }
   table{
     overflow-y: scroll;
@@ -28,6 +28,14 @@ body {
     width: fit-content;
   }
 
+  table.recommendationTable{
+    height: fit-content;
+  }
+
   select {
     width: 100%;
+  }
+
+  select.seasonPicker {
+    width: 2in
   }

@@ -9,26 +9,44 @@ export class RecommendationTable extends React.Component {
         };
     }
 
+    componentWillReceiveProps(nextProps){
+        if(nextProps.playerRows != this.state.playerRows){
+            console.log("nextProps.playerRows");
+            console.log(nextProps.playerRows);
+            this.setState({
+                playerRows : nextProps.playerRows
+            })
+        }
+    }
+
     render(){
         console.log("HERE")
-        console.log(this.props.playerRows);
+        console.log(this.state.playerRows);
         return(
-            <table>
+            <table className="recommendationTable">
                 <thead>
                 <tr className="table-row">
                     {this.renderTextHeaderCell("Player")}
                     {this.renderTextHeaderCell("Position")}
+                    {this.renderTextHeaderCell("Category")}
                     {this.renderTextHeaderCell("Fantasy Value")}
                     {this.renderTextHeaderCell("Fantasy Diffs")}
+                    {this.renderTextHeaderCell("Average Diff")}
+                    {this.renderTextHeaderCell("First Diff")}
+                    {this.renderTextHeaderCell("Last Diff")}
                 </tr>
                 </thead>
-                <tbody>
-                {this.props.playerRows.map(({player, position, fantasy_value, diffs}) =>
-                    <tr className="table-row" id={player} key={player}>
-                        {this.renderTextCell(player)}
+                <tbody id="recommendationsBody">
+                {this.state.playerRows.map(({player, position, fantasy_value, diffs, category, averageDelta, firstDelta, lastDelta}) =>
+                    <tr className="table-row" id={category} key={category}>
+                        {this.renderTextCell(player, false)}
                         {this.renderTextCell(position)}
+                        {this.renderTextCell(category)}
                         {this.renderTextCell(fantasy_value)}
                         {this.renderTextCell(diffs.join(", "))}
+                        {this.renderTextCell(averageDelta.toFixed(2))}
+                        {this.renderTextCell(firstDelta)}
+                        {this.renderTextCell(lastDelta)}
                     </tr>
                 )}
                 </tbody>
@@ -37,27 +55,17 @@ export class RecommendationTable extends React.Component {
     }
 
 
-    renderTextCell(text) {
-        let text_id = text + "-cell";
-        return (
-            <td id={text_id}>{text}</td>
-        )
-    }
-
-    renderDropdown(text) {
-        let dropdown_id = text + "-cell";
-        let options = this.props.teams.map((el,i) =>
-            <option key={i} value={String(el).toLowerCase()}> {el} </option>
-        )
-        // console.log(options);
-        return (
-            <td>
-                <select name="teams" id={dropdown_id}>
-                    <option value="undrafted"></option>
-                    {options}
-                </select>
-            </td>
-        )
+    renderTextCell(text, bGiveID=true) {
+        if(bGiveID){
+            let text_id = text + "-cell";
+            return (
+                <td id={text_id}>{text}</td>
+            )
+        } else {
+            return (
+                <td>{text}</td>
+            )
+        }
     }
 
     renderTextHeaderCell(text) {

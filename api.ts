@@ -1,3 +1,5 @@
+import { getTopAvailablePlayers } from "./fantasy_functions";
+
 // import { undraftPlayerAPI } from "./fantasy_functions";
 
 const express = require('express');
@@ -32,20 +34,39 @@ api.get('/', (req, res) => {
     res.send('Hello, world!');
 });
 
-api.get('/recommended/players/:picksUntilNextPick', async (req, res) => {
-    let picksUntilNextPick = req.params.picksUntilNextPick
-    await getTopPlayersOfEachPosition(picksUntilNextPick);
+api.get('/recommended/players/:picksUntilNextPick/season/:yearsOfSeason', async (req, res) => {
+    let picksUntilNextPick = req.params.picksUntilNextPick;
+    let sYearsOfSeason = req.params.yearsOfSeason;
+    await getTopPlayersOfEachPosition(picksUntilNextPick, sYearsOfSeason);
     let recommendations = await calculateDeltasForPlayerToDraft();
+    // recommendations = await rankPositionToDraftByDeltas();
+    // console.log(recommendations);
     let objRecommendations = {
         arrayRecommendations: recommendations
     }
+    // console.log(recommendations);
     res.send(objRecommendations);
 });
 
-api.get('/draft/:player', async (req, res) => {
-    let player = req.params.player;
+api.get('/players/:numberOfPlayers/season/:yearsOfSeason', async (req, res) => {
+    let nNumberOfPlayers = req.params.numberOfPlayers;
+    let sYearsOfSeason = req.params.yearsOfSeason;
+    let topPlayers = await getTopAvailablePlayers(false, sYearsOfSeason, nNumberOfPlayers);
+    // let topPlayers = await getTopAvailablePlayers("20192020", nNumberOfPlayers)
+    // console.log("TOP PLAYERS", topPlayers);
+    // let recommendations = await calculateDeltasForPlayerToDraft();
+    let objPlayers = {
+        arrayPlayers: topPlayers
+    }
+    console.log("OBJPLAYERS", objPlayers);
+    res.send(objPlayers);
+});
 
-    let response = await draftPlayerAPI({fullName: player, id: 0})
+api.get('/draft/:player/team/:team', async (req, res) => {
+    let player = req.params.player;
+    let team = req.params.team;
+
+    let response = await draftPlayerAPI({fullName: player, id: 0}, team)
     res.send(response);
 });
 
