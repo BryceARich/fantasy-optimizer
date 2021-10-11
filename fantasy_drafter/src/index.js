@@ -17,7 +17,7 @@ class FantasyDrafter extends React.Component{
             recommendedPlayerRows: [],
             playerRows: [],
             picksAway: 10,
-            season: "20192020"
+            season: "2021"
         };
         this.setState = this.setState.bind(this)
     }
@@ -141,14 +141,7 @@ class FantasyDrafter extends React.Component{
                     />
 
                     <select className="seasonPicker" name="season" id="seasonPicker" onChange={this.changedSelection.bind(this)}>
-                                        <option value="20192020">2019/2020</option>
-                                        <option value="20182019">2018/2019</option>
-                                        <option value="20172018">2017/2018</option>
-                                        <option value="20162017">2016/2017</option>
-                                        <option value="20152016">2015/2016</option>
-                                        <option value="20142015">2014/2015</option>
-                                        <option value="20132014">2013/2014</option>
-                                        <option value="20122013">2012/2013</option>
+                                        <option value="2021">2021</option>
                     </select>
                 </div>
                 <TeamsTable teams={this.state.teams} numberOfTeams={this.state.numberOfTeams} setParentState={this.setState}/>

@@ -72,7 +72,7 @@ let currentPosition : string = ""
 async function readCSVs(arrayPositions){
     for(let index in arrayPositions){
         currentPosition = arrayPositions[index];
-        let json = await csv().fromFile(`./nfl_csvs/playerData2019/2019NFLPlayerStats-${currentPosition}v2.csv`);
+        let json = await csv().fromFile(`./nfl_csvs/playerDataProjections2021/2021NFLPlayerProjections-${currentPosition}.csv`);
         json.forEach(printPlayer)
     }
     console.log(statFields);
@@ -98,7 +98,10 @@ function printPlayer(item, index) {
     };
     currentId++;
     newPlayer.fullName = item.PLAYER.split("\n")[0];
-    newPlayer.position = currentPosition
+    console.log(item);
+    console.log(item.POS)
+    // newPlayer.position = currentPosition
+    newPlayer.position = item.POS
     if(item.CA){
         newPlayer.seasonStats.Completions = item.CA.split("/")[0];
         newPlayer.seasonStats.Attempts = item.CA.split("/")[1];
@@ -158,7 +161,7 @@ async function calculateFantasyWorthForPlayer(activePlayers: Array<IObjNFLPlayer
             // run it through and push the score for each season, this way when pulling data for a player it will be the same json data for all seasons
             for(let index in player.seasonStats){
                 // let sSeason = player.arraySeasonStats[0][index].season;
-                let sSeason = "";
+                let sSeason = "2021";
                 let seasonStats = player.seasonStats;
                 // let leagueID = player.arraySeasonStats[0][index].league.id;
                 // if(leagueID !== 133){
@@ -232,7 +235,7 @@ async function changeDraftStatusForPlayer(bDrafting){
     }
 }
 
-async function getTopAvailablePlayers(sSeason: string, nNumberOfPlayers: number, sPosition: string = ""){
+export async function getTopAvailablePlayers(availablePlayersOnly: boolean, sSeason: string, nNumberOfPlayers: number, sPosition: string = ""){
     const redisZRevRangeAsync = promisify(objSystem.redisClient.zrevrange.bind(objSystem.redisClient));
     const redisHGetAsync = promisify(objSystem.redisClient.hget.bind(objSystem.redisClient));
     let top10Players = [];
@@ -250,10 +253,12 @@ async function getTopAvailablePlayers(sSeason: string, nNumberOfPlayers: number,
             for(let index=0; index < zRangeResult.length; index+=2){
                 let player = JSON.parse(zRangeResult[index])
                 // console.log(player.id, player.fullName, zRangeResult[index+1]);
-                if("true" === await redisHGetAsync("nfl_player_available_to_draft", player.id)){
+                let owner = await redisHGetAsync("nfl_player_available_to_draft", player.id);
+                if(availablePlayersOnly && "true" === owner){
                     // console.log(`${player.fullName} is Available`);
-                    top10Players.push({fullName: player.fullName, id: player.id, position: player.position.name, fantasyValue: Number(zRangeResult[index+1]), deltas: [], deltaRanks: [], averageDeltaRank: 0});
-                } else {
+                    top10Players.push({fullName: player.fullName, id: player.id, position: player.position, fantasyValue: Number(zRangeResult[index+1]), deltas: [], deltaRanks: [], averageDeltaRank: 0});
+                } else if(!availablePlayersOnly && "false" !== owner) {
+                    top10Players.push({fullName: player.fullName, id: player.id, position: player.position, fantasyValue: Number(zRangeResult[index+1]), deltas: [], deltaRanks: [], averageDeltaRank: 0});
                     // console.log(`${player.fullName} is NOT Available`);
                 }
             }
@@ -262,8 +267,8 @@ async function getTopAvailablePlayers(sSeason: string, nNumberOfPlayers: number,
     } catch(err){
         console.log(err);
     }
-    console.log(`Top 10 ${sPosition} Available:`)
-    console.log(top10Players);
+    // console.log(`Top 10 ${sPosition} Available:`)
+    // console.log(top10Players);
     return top10Players
 }
 
@@ -278,16 +283,16 @@ let objBestPlayersAvailable = {
     flex: []
 }
 
-export async function getTopPlayersOfEachPosition(nNumberOfPlayers: number){
+export async function getTopPlayersOfEachPosition(nNumberOfPlayers: number, sYearsOfSeason="2021"){
     const redisSetAsync =  promisify(objSystem.redisClient.set.bind(objSystem.redisClient));
-    objBestPlayersAvailable.overall = await getTopAvailablePlayers("", nNumberOfPlayers);
-    objBestPlayersAvailable.running_backs = await getTopAvailablePlayers("", nNumberOfPlayers, "RB");
-    objBestPlayersAvailable.quarter_backs = await getTopAvailablePlayers("", nNumberOfPlayers, "QB");
-    objBestPlayersAvailable.wide_receivers = await getTopAvailablePlayers("", nNumberOfPlayers, "WR");
-    objBestPlayersAvailable.defense_special_teams = await getTopAvailablePlayers("", nNumberOfPlayers, "D_ST");
-    objBestPlayersAvailable.kickers = await getTopAvailablePlayers("", nNumberOfPlayers, "K");
-    objBestPlayersAvailable.tightends = await getTopAvailablePlayers("", nNumberOfPlayers, "TE");
-    objBestPlayersAvailable.flex = await getTopAvailablePlayers("", nNumberOfPlayers, "FLEX");
+    objBestPlayersAvailable.overall = await getTopAvailablePlayers(true,sYearsOfSeason, nNumberOfPlayers);
+    objBestPlayersAvailable.running_backs = await getTopAvailablePlayers(true,sYearsOfSeason, nNumberOfPlayers, "RB");
+    objBestPlayersAvailable.quarter_backs = await getTopAvailablePlayers(true,sYearsOfSeason, nNumberOfPlayers, "QB");
+    objBestPlayersAvailable.wide_receivers = await getTopAvailablePlayers(true,sYearsOfSeason, nNumberOfPlayers, "WR");
+    objBestPlayersAvailable.defense_special_teams = await getTopAvailablePlayers(true,sYearsOfSeason, nNumberOfPlayers, "DST");
+    objBestPlayersAvailable.kickers = await getTopAvailablePlayers(true,sYearsOfSeason, nNumberOfPlayers, "K");
+    objBestPlayersAvailable.tightends = await getTopAvailablePlayers(true,sYearsOfSeason, nNumberOfPlayers, "TE");
+    objBestPlayersAvailable.flex = await getTopAvailablePlayers(true,sYearsOfSeason, nNumberOfPlayers, "FLEX");
     // console.log(objBestPlayersAvailable);
     await redisSetAsync("nfl_top_players_available", JSON.stringify(objBestPlayersAvailable));
 }
@@ -367,12 +372,41 @@ export async function calculateDeltasForPlayerToDraft(){
     // console.log(objBestPlayersAvailable);
 }
 
+export async function draftPlayerAPI(player, draftTeam=false){
+    const redisHGetAsync = promisify(objSystem.redisClient.hget.bind(objSystem.redisClient));
+    const redisHSetAsync =  promisify(objSystem.redisClient.hset.bind(objSystem.redisClient));
+    // let sDraftedPlayer = prompt(`What is the full name of the drafted player?\t`);
+    if(player.fullName != 'undefined' && player.fullName != ''){
+        console.log(await convertPlayerNameToRedisKey(player.fullName));
+        // let sDraftingTeam = prompt(`What team drafted the player?\t`);
+        // console.log(`${sDraftedPlayer} drafted by ${sDraftingTeam}`);
+        player.id = await redisHGetAsync(`nfl_player_lookup`, await convertPlayerNameToRedisKey(player.fullName));
+    }
+    console.log(player.id);
+    await redisHSetAsync(`nfl_player_available_to_draft`, `${player.id}`, draftTeam);
+}
+
+export async function undraftPlayerAPI(player, draftTeam){
+    const redisHGetAsync = promisify(objSystem.redisClient.hget.bind(objSystem.redisClient));
+    const redisHSetAsync =  promisify(objSystem.redisClient.hset.bind(objSystem.redisClient));
+    // let sDraftedPlayer = await convertPlayerNameToRedisKey(prompt(`What is the full name of the drafted player?\t`));
+    if(player.fullName != 'undefined' && player.fullName != ''){
+        console.log(await convertPlayerNameToRedisKey(player.fullName));
+        // let sDraftingTeam = prompt(`What team drafted the player?\t`);
+        // console.log(`${sDraftedPlayer} drafted by ${sDraftingTeam}`);
+        player.id = await redisHGetAsync(`nfl_player_lookup`, await convertPlayerNameToRedisKey(player.fullName));
+    }
+    console.log(player.id);
+    await redisHSetAsync(`nfl_player_available_to_draft`, player.id, true);
+}
+
 
 
 async function runProgram(){
     let sInput = ""
     console.log("Starting");
-    let nfl_positions = ["D_ST","K", "QB", "RB", "TE", "WR"]
+    let nfl_positions = ["All"]
+    // let nfl_positions = ["D_ST","K", "QB", "RB", "TE", "WR"]
     sInput = prompt("Do you want to reload the players?")
     if([true, 'y', 'Y', 'Yes','yes'].includes(sInput)){
         await readCSVs(nfl_positions);
@@ -416,6 +450,6 @@ async function runProgram(){
     objSystem.redisClient.quit()
 }
 
-runProgram();
+// runProgram();
 
 // console.log(request("https://api.nfl.com/v1/games", { json: true }));

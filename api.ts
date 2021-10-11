@@ -1,12 +1,13 @@
-import { getTopAvailablePlayers } from "./fantasy_functions";
+// import { getTopAvailablePlayers } from "./fantasy_functions";
 
 // import { undraftPlayerAPI } from "./fantasy_functions";
 
 const express = require('express');
 
 const api = express();
-const { loadNHLDataToRedis, getTopPlayersOfEachPosition, calculateDeltasForPlayerToDraft,
-        draftPlayerAPI, undraftPlayerAPI, clearRedis} = require("./fantasy_functions")
+// const { loadNHLDataToRedis, getTopPlayersOfEachPosition, calculateDeltasForPlayerToDraft,
+//         draftPlayerAPI, undraftPlayerAPI, clearRedis} = require("./fantasy_functions")
+const { draftPlayerAPI, undraftPlayerAPI, getTopAvailablePlayers, getTopPlayersOfEachPosition, calculateDeltasForPlayerToDraft} = require("./nfl_functions")
 
 api.use(function(req, res, next) {
     res.header("Access-Control-Allow-Origin", "*"); // update to match the domain you will make the request from
@@ -17,7 +18,7 @@ api.use(function(req, res, next) {
 async function setupRedis(){
     console.log("setting up redis");
     // clearRedis();
-    loadNHLDataToRedis(true);
+    // loadNHLDataToRedis(true);
     console.log("finished setting up redis");
     return;
 }
@@ -37,10 +38,11 @@ api.get('/', (req, res) => {
 api.get('/recommended/players/:picksUntilNextPick/season/:yearsOfSeason', async (req, res) => {
     let picksUntilNextPick = req.params.picksUntilNextPick;
     let sYearsOfSeason = req.params.yearsOfSeason;
+    console.log("Request for recommended players from the year", sYearsOfSeason)
     await getTopPlayersOfEachPosition(picksUntilNextPick, sYearsOfSeason);
     let recommendations = await calculateDeltasForPlayerToDraft();
     // recommendations = await rankPositionToDraftByDeltas();
-    // console.log(recommendations);
+    // console.log("Recommendations:", recommendations);
     let objRecommendations = {
         arrayRecommendations: recommendations
     }
@@ -51,6 +53,7 @@ api.get('/recommended/players/:picksUntilNextPick/season/:yearsOfSeason', async 
 api.get('/players/:numberOfPlayers/season/:yearsOfSeason', async (req, res) => {
     let nNumberOfPlayers = req.params.numberOfPlayers;
     let sYearsOfSeason = req.params.yearsOfSeason;
+    console.log("Request for players from the year", sYearsOfSeason)
     let topPlayers = await getTopAvailablePlayers(false, sYearsOfSeason, nNumberOfPlayers);
     // let topPlayers = await getTopAvailablePlayers("20192020", nNumberOfPlayers)
     // console.log("TOP PLAYERS", topPlayers);
