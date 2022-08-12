@@ -17,7 +17,7 @@ class FantasyDrafter extends React.Component{
             recommendedPlayerRows: [],
             playerRows: [],
             picksAway: 10,
-            season: "20192020"
+            season: "20202021"
         };
         this.setState = this.setState.bind(this)
     }
@@ -57,7 +57,7 @@ class FantasyDrafter extends React.Component{
     async loadRecommendedPlayerRows() {
         let recommendedPlayerRows = [];
         console.log("PICKS AWAY", this.state.picksAway);
-        let season = "20182019"
+        let season = "20192020"
         let resp = await fetch(`http://localhost:3001/recommended/players/${this.state.picksAway}/season/${this.state.season}`)
         .then(function (response) {
             return response.json();
@@ -86,8 +86,8 @@ class FantasyDrafter extends React.Component{
 
     async loadPlayerRows() {
         let playerRows = [];
-        let season = "20182019"
-        let respPlayers = await fetch(`http://localhost:3001/players/300/season/${this.state.season}`)
+        let season = "20192029"
+        let respPlayers = await fetch(`http://localhost:3001/players/700/season/${this.state.season}`)
         .then(function (response) {
             return response.json();
         }).catch(function (error) {
@@ -141,6 +141,7 @@ class FantasyDrafter extends React.Component{
                     />
 
                     <select className="seasonPicker" name="season" id="seasonPicker" onChange={this.changedSelection.bind(this)}>
+                                        <option value="20202021">2020/2021</option>
                                         <option value="20192020">2019/2020</option>
                                         <option value="20182019">2018/2019</option>
                                         <option value="20172018">2017/2018</option>
