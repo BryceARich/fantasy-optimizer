@@ -31,7 +31,7 @@ interface IObjSeasonStats{
     sequenceNumber: number
 }
 
-interface IObjPlayer {
+export interface IObjPlayer {
     id: number,
     fullName: string,
     position: IObjPosition,
@@ -66,7 +66,7 @@ async function loadScoringSystem(){
     });
 }
 
-async function getTeamIds(): Promise<Array<number>>{
+export async function getTeamIds(): Promise<Array<number>>{
     let arrayTeamIds = [];
     try{
         let response = await asyncRequest("https://statsapi.web.nhl.com/api/v1/teams", { json: true }),
@@ -80,7 +80,7 @@ async function getTeamIds(): Promise<Array<number>>{
     return arrayTeamIds;
 }
 
-async function getActivePlayers(teamIds: Array<number>): Promise<Array<IObjPlayer>>{
+export async function getActivePlayers(teamIds: Array<number>): Promise<Array<IObjPlayer>>{
     let activePlayerIds = []
     await Promise.all(teamIds.map(async teamId => {
         let response = await asyncRequest(`https://statsapi.web.nhl.com/api/v1/teams/${teamId}/roster`, { json: true }),
@@ -107,8 +107,8 @@ async function getSeasonStatsForPlayers(arrayPlayers: Array<IObjPlayer>, season:
             // `https://statsapi.web.nhl.com/api/v1/people/8476459/stats?stats=statsSingleSeason&season=20192020`
             try{
                 console.log(player.id);
-                let response = await asyncRequest(`https://statsapi.web.nhl.com/api/v1/people/${player.id}/stats?stats=yearByYear`, { json: true }),
-                // let response = await asyncRequest(`https://statsapi.web.nhl.com/api/v1/people/${player.id}/stats?stats=statsSingleSeason&season=${season}`, { json: true }),
+                // let response = await asyncRequest(`https://statsapi.web.nhl.com/api/v1/people/${player.id}/stats?stats=yearByYear`, { json: true }),
+                let response = await asyncRequest(`https://statsapi.web.nhl.com/api/v1/people/${player.id}/stats?stats=statsSingleSeason&season=${season}`, { json: true }),
                 body = response.body;
                 // console.log(player,body);
                 // console.log(body.stats[0].splits[0]);
@@ -154,7 +154,7 @@ export async function loadStats(){
             const teamIds: Array<number> = await getTeamIds();
             console.log("Team Ids:", teamIds);
             activePlayers = await getActivePlayers(teamIds);
-            let sSeason = "20192020"
+            let sSeason = "20202021"
             // for(let sSeason = 20192020; Number(sSeason) > 20092010; sSeason -= 10001){
             await getSeasonStatsForPlayers(activePlayers, String(sSeason));
             // }
@@ -227,10 +227,10 @@ async function calculateFantasyWorthForPlayer(activePlayers: Array<IObjPlayer>){
             for(let index in player.arraySeasonStats[0]){
                 nFantasyWorth = 0;
                 let sSeason = player.arraySeasonStats[0][index].season;
-                let leagueID = player.arraySeasonStats[0][index].league.id;
-                if(leagueID !== 133){
-                    continue;
-                }
+                // let leagueID = player.arraySeasonStats[0][index].league.id;
+                // if(leagueID !== 133){
+                //     continue;
+                // }
                 // console.log(`Array season stats`);
                 // console.log(player.arraySeasonStats[0]);
                 let seasonStats = player.arraySeasonStats[0][index].stat;
@@ -252,10 +252,10 @@ async function calculateFantasyWorthForPlayer(activePlayers: Array<IObjPlayer>){
             for(let index in player.arraySeasonStats[0]){
                 let sSeason = player.arraySeasonStats[0][index].season;
                 let seasonStats = player.arraySeasonStats[0][index].stat;
-                let leagueID = player.arraySeasonStats[0][index].league.id;
-                if(leagueID !== 133){
-                    continue;
-                }
+                // let leagueID = player.arraySeasonStats[0][index].league.id;
+                // if(leagueID !== 133){
+                //     continue;
+                // }
                 nFantasyWorth = seasonStats.fantasyValue
                 await redisZAddAsync(`nhl_fantasy_player_value_${sSeason}`, nFantasyWorth, JSON.stringify(player));
                 await redisZAddAsync(`nhl_fantasy_player_value_position_${player.position.name.replace(" ","_")}_${sSeason}`, nFantasyWorth, JSON.stringify(player));
@@ -353,7 +353,7 @@ let objBestPlayersAvailable = {
     forwards: []
 }
 
-export async function getTopPlayersOfEachPosition(nNumberOfPlayers: number, sYearsOfSeason="20192020"){
+export async function getTopPlayersOfEachPosition(nNumberOfPlayers: number, sYearsOfSeason="20202021"){
     const redisSetAsync =  promisify(objSystem.redisClient.set.bind(objSystem.redisClient));
     objBestPlayersAvailable.overall = await getTopAvailablePlayers(true, sYearsOfSeason, nNumberOfPlayers);
     objBestPlayersAvailable.centers = await getTopAvailablePlayers(true, sYearsOfSeason, nNumberOfPlayers, "Center");
