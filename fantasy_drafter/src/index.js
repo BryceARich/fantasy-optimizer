@@ -87,7 +87,7 @@ class FantasyDrafter extends React.Component{
     async loadPlayerRows() {
         let playerRows = [];
         let season = "20212022"
-        let respPlayers = await fetch(`http://localhost:3001/players/300/season/${this.state.season}`)
+        let respPlayers = await fetch(`http://localhost:3001/players/400/season/${this.state.season}`)
         .then(function (response) {
             return response.json();
         }).catch(function (error) {

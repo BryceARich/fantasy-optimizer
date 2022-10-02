@@ -103,7 +103,7 @@ export class DrafteeTable extends React.Component {
     renderDropdown(text, owner=null) {
         let dropdown_id = text + "-cell";
 
-        console.log("Owner", owner);
+//        console.log("Owner", owner);
         let options = this.props.teams.map((el,i) =>
             owner == el ? <option selected="selected" key={i} value={String(el).toLowerCase()}> {el} </option> : <option key={i} value={String(el).toLowerCase()}> {el} </option>
         )
