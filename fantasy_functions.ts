@@ -154,7 +154,7 @@ export async function loadStats(){
             const teamIds: Array<number> = await getTeamIds();
             console.log("Team Ids:", teamIds);
             activePlayers = await getActivePlayers(teamIds);
-            let sSeason = "20202021"
+            let sSeason = "20212022"
             // for(let sSeason = 20192020; Number(sSeason) > 20092010; sSeason -= 10001){
             await getSeasonStatsForPlayers(activePlayers, String(sSeason));
             // }
@@ -353,7 +353,7 @@ let objBestPlayersAvailable = {
     forwards: []
 }
 
-export async function getTopPlayersOfEachPosition(nNumberOfPlayers: number, sYearsOfSeason="20202021"){
+export async function getTopPlayersOfEachPosition(nNumberOfPlayers: number, sYearsOfSeason="20212022"){
     const redisSetAsync =  promisify(objSystem.redisClient.set.bind(objSystem.redisClient));
     objBestPlayersAvailable.overall = await getTopAvailablePlayers(true, sYearsOfSeason, nNumberOfPlayers);
     objBestPlayersAvailable.centers = await getTopAvailablePlayers(true, sYearsOfSeason, nNumberOfPlayers, "Center");
