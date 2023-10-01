@@ -162,7 +162,7 @@ async function calculateFantasyWorthForPlayer(activePlayers: Array<IObjNFLPlayer
             // run it through and push the score for each season, this way when pulling data for a player it will be the same json data for all seasons
             for(let index in player.seasonStats){
                 // let sSeason = player.arraySeasonStats[0][index].season;
-//                 let sSeason = "2021";
+//                 let sSeason = "2022";
                 let sSeason = new Date().getFullYear()
                 let seasonStats = player.seasonStats;
                 // let leagueID = player.arraySeasonStats[0][index].league.id;
@@ -238,6 +238,7 @@ async function changeDraftStatusForPlayer(bDrafting){
 }
 
 export async function getTopAvailablePlayers(availablePlayersOnly: boolean, sSeason: string, nNumberOfPlayers: number, sPosition: string = ""){
+//     console.log("getTopAvailablePlayers", sSeason, sPosition)
     const redisZRevRangeAsync = promisify(objSystem.redisClient.zrevrange.bind(objSystem.redisClient));
     const redisHGetAsync = promisify(objSystem.redisClient.hget.bind(objSystem.redisClient));
     let top10Players = [];
@@ -251,17 +252,17 @@ export async function getTopAvailablePlayers(availablePlayersOnly: boolean, sSea
         let rank = 0;
         while(top10Players.length < nNumberOfPlayers){
             let zRangeResult = await redisZRevRangeAsync(redisKey, rank, rank, "WITHSCORES");
-            // console.log(zRangeResult.length);
+//             console.log(zRangeResult.length);
             for(let index=0; index < zRangeResult.length; index+=2){
                 let player = JSON.parse(zRangeResult[index])
-                // console.log(player.id, player.fullName, zRangeResult[index+1]);
+//                 console.log(player.id, player.fullName, zRangeResult[index+1]);
                 let owner = await redisHGetAsync("nfl_player_available_to_draft", player.id);
                 if(availablePlayersOnly && "true" === owner){
-                    // console.log(`${player.fullName} is Available`);
+//                     console.log(`${player.fullName} is Available`);
                     top10Players.push({fullName: player.fullName, id: player.id, position: player.position, fantasyValue: Number(zRangeResult[index+1]), deltas: [], deltaRanks: [], averageDeltaRank: 0});
                 } else if(!availablePlayersOnly && "false" !== owner) {
                     top10Players.push({fullName: player.fullName, id: player.id, position: player.position, fantasyValue: Number(zRangeResult[index+1]), deltas: [], deltaRanks: [], averageDeltaRank: 0});
-                    // console.log(`${player.fullName} is NOT Available`);
+//                     console.log(`${player.fullName} is NOT Available`);
                 }
             }
             rank++;
@@ -285,7 +286,8 @@ let objBestPlayersAvailable = {
     flex: []
 }
 
-export async function getTopPlayersOfEachPosition(nNumberOfPlayers: number, sYearsOfSeason="2022"){
+export async function getTopPlayersOfEachPosition(nNumberOfPlayers: number, sYearsOfSeason="2023"){
+//     console.log("getTopPlayersOfEachPosition")
     const redisSetAsync =  promisify(objSystem.redisClient.set.bind(objSystem.redisClient));
     objBestPlayersAvailable.overall = await getTopAvailablePlayers(true,sYearsOfSeason, nNumberOfPlayers);
     objBestPlayersAvailable.running_backs = await getTopAvailablePlayers(true,sYearsOfSeason, nNumberOfPlayers, "RB");
@@ -295,7 +297,7 @@ export async function getTopPlayersOfEachPosition(nNumberOfPlayers: number, sYea
     objBestPlayersAvailable.kickers = await getTopAvailablePlayers(true,sYearsOfSeason, nNumberOfPlayers, "K");
     objBestPlayersAvailable.tightends = await getTopAvailablePlayers(true,sYearsOfSeason, nNumberOfPlayers, "TE");
     objBestPlayersAvailable.flex = await getTopAvailablePlayers(true,sYearsOfSeason, nNumberOfPlayers, "FLEX");
-    // console.log(objBestPlayersAvailable);
+//     console.log(objBestPlayersAvailable);
     await redisSetAsync("nfl_top_players_available", JSON.stringify(objBestPlayersAvailable));
 }
 

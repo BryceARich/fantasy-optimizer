@@ -42,11 +42,11 @@ api.get('/recommended/players/:picksUntilNextPick/season/:yearsOfSeason', async 
     await getTopPlayersOfEachPosition(picksUntilNextPick, sYearsOfSeason);
     let recommendations = await calculateDeltasForPlayerToDraft();
     // recommendations = await rankPositionToDraftByDeltas();
-    // console.log("Recommendations:", recommendations);
+//     console.log("Recommendations:", recommendations);
     let objRecommendations = {
         arrayRecommendations: recommendations
     }
-    // console.log(recommendations);
+//     console.log(recommendations);
     res.send(objRecommendations);
 });
 
