@@ -16,14 +16,14 @@ api.use(function(req, res, next) {
 
 async function setupRedis(){
     console.log("setting up redis");
-    // clearRedis();
-    loadNHLDataToRedis(true);
+    clearRedis();
+    await loadNHLDataToRedis(true);
     console.log("finished setting up redis");
     return;
 }
 
 async function runAPI(){
-    await setupRedis();
+//     setupRedis();
     api.listen(3001, () => {
         console.log('API up and running!');
     });
