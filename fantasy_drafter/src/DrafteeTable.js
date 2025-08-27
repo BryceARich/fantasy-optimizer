@@ -13,7 +13,7 @@ export class DrafteeTable extends React.Component {
     }
 
     componentWillReceiveProps(nextProps){
-        if(nextProps.playerRows != this.state.playerRows){
+        if(nextProps.playerRows !== this.state.playerRows){
             this.setState({
                 playerRows : nextProps.playerRows
             })
@@ -78,7 +78,7 @@ export class DrafteeTable extends React.Component {
         let drafter = event.target.value.trim();
         console.log("Drafter is", drafter);
         let resp
-        if(drafter !== null && drafter !== "" && drafter != "undrafted"  && !drafter.includes("tier")){
+        if(drafter !== null && drafter !== "" && drafter !== "undrafted"  && !drafter.includes("tier")){
             console.log("Drafting");
             resp = await fetch(`http://localhost:3001/draft/${playerName}/team/${drafter}`)
             .then(function (response) {
@@ -105,7 +105,7 @@ export class DrafteeTable extends React.Component {
 
 //        console.log("Owner", owner);
         let options = this.props.teams.map((el,i) =>
-            owner == el ? <option selected="selected" key={i} value={String(el).toLowerCase()}> {el} </option> : <option key={i} value={String(el).toLowerCase()}> {el} </option>
+            owner === el ? <option selected="selected" key={i} value={String(el).toLowerCase()}> {el} </option> : <option key={i} value={String(el).toLowerCase()}> {el} </option>
         )
         // console.log(options);
         return (

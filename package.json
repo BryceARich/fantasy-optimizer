@@ -33,9 +33,10 @@
     "redis": "^3.0.2",
     "redis-cli": "^1.4.0",
     "request": "^2.88.2",
-    "ts-node": "^8.10.2",
-    "typescript": "^3.0.0"
+    "ts-node": "^8.10.2"
   },
-  "devDependencies": {},
+  "devDependencies": {
+    "typescript": "^5.5.4"
+  },
   "keywords": []
 }

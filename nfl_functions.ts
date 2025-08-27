@@ -7,6 +7,10 @@ const csv = require('csvtojson'),
 request = require('request');
 const {promisify} = require("util");
 
+function sleep(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 interface ObjSystem {
     redisClient: RedisClient
 }
@@ -238,7 +242,7 @@ async function changeDraftStatusForPlayer(bDrafting){
 }
 
 export async function getTopAvailablePlayers(availablePlayersOnly: boolean, sSeason: string, nNumberOfPlayers: number, sPosition: string = ""){
-//     console.log("getTopAvailablePlayers", sSeason, sPosition)
+    console.log("getTopAvailablePlayers", sSeason, sPosition)
     const redisZRevRangeAsync = promisify(objSystem.redisClient.zrevrange.bind(objSystem.redisClient));
     const redisHGetAsync = promisify(objSystem.redisClient.hget.bind(objSystem.redisClient));
     let top10Players = [];
@@ -248,9 +252,11 @@ export async function getTopAvailablePlayers(availablePlayersOnly: boolean, sSea
     } else {
         redisKey = `nfl_fantasy_player_value_${sSeason}`
     }
+    console.log(redisKey)
     try{
         let rank = 0;
-        while(top10Players.length < nNumberOfPlayers){
+        while(top10Players.length < nNumberOfPlayers && rank < nNumberOfPlayers){
+//             await sleep(100)
             let zRangeResult = await redisZRevRangeAsync(redisKey, rank, rank, "WITHSCORES");
 //             console.log(zRangeResult.length);
             for(let index=0; index < zRangeResult.length; index+=2){
@@ -260,7 +266,7 @@ export async function getTopAvailablePlayers(availablePlayersOnly: boolean, sSea
                 if(availablePlayersOnly && "true" === owner){
 //                     console.log(`${player.fullName} is Available`);
                     top10Players.push({fullName: player.fullName, id: player.id, position: player.position, fantasyValue: Number(zRangeResult[index+1]), deltas: [], deltaRanks: [], averageDeltaRank: 0});
-                } else if(!availablePlayersOnly && "false" !== owner) {
+                } else if(!availablePlayersOnly){// && "false" !== owner) {
                     top10Players.push({fullName: player.fullName, id: player.id, position: player.position, fantasyValue: Number(zRangeResult[index+1]), deltas: [], deltaRanks: [], averageDeltaRank: 0});
 //                     console.log(`${player.fullName} is NOT Available`);
                 }
@@ -270,8 +276,8 @@ export async function getTopAvailablePlayers(availablePlayersOnly: boolean, sSea
     } catch(err){
         console.log(err);
     }
-    // console.log(`Top 10 ${sPosition} Available:`)
-    // console.log(top10Players);
+    console.log(`Top 10 ${sPosition} Available:`)
+    console.log(top10Players);
     return top10Players
 }
 

@@ -9,7 +9,8 @@
     "react": "^16.13.1",
     "react-counter-input": "^0.2.1",
     "react-dom": "^16.13.1",
-    "react-scripts": "3.4.1"
+    "react-scripts": "^5.0.1",
+    "util": "^0.12.5"
   },
   "scripts": {
     "start": "react-scripts start",
@@ -31,5 +32,9 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "devDependencies": {
+    "@types/babel__traverse": "^7.20.6",
+    "typescript": "^5.5.4"
   }
 }
