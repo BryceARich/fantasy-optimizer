@@ -255,7 +255,9 @@ export async function getTopAvailablePlayers(availablePlayersOnly: boolean, sSea
     console.log(redisKey)
     try{
         let rank = 0;
-        while(top10Players.length < nNumberOfPlayers && rank < nNumberOfPlayers){
+        while(top10Players.length < nNumberOfPlayers && rank < 433){
+//             console.log("HERE")
+//             console.log(top10Players, rank, nNumberOfPlayers)
 //             await sleep(100)
             let zRangeResult = await redisZRevRangeAsync(redisKey, rank, rank, "WITHSCORES");
 //             console.log(zRangeResult.length);
@@ -457,7 +459,7 @@ async function runProgram(){
             bContinueRunning = false;
         }
     }
-    objSystem.redisClient.quit()
+//     objSystem.redisClient.quit()
 }
 
 // runProgram();

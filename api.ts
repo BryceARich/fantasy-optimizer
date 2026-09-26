@@ -52,7 +52,7 @@ api.get('/recommended/players/:picksUntilNextPick/season/:yearsOfSeason', async 
 
 api.get('/players/:numberOfPlayers/season/:yearsOfSeason', async (req, res) => {
     let nNumberOfPlayers = req.params.numberOfPlayers;
-    let sYearsOfSeason = req.params.yearsOfSeason;
+    let sYearsOfSeason = req.params.yearsOfSeason
     console.log("Request for players from the year", sYearsOfSeason)
     let topPlayers = await getTopAvailablePlayers(true, sYearsOfSeason, nNumberOfPlayers);
     // let topPlayers = await getTopAvailablePlayers("20192020", nNumberOfPlayers)
